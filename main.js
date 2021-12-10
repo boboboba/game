@@ -10,8 +10,10 @@ const 	width 		= canvas.width  = window.innerWidth,
 		tile 		= 100,
 		fov 		= Math.PI/3,
 		num_rays	= 60,
-		max_dist	= 500,
+		max_dist	= 2000,
 		d_angle		= fov/num_rays,
+		surface_dist= num_rays / (2*Math.tan(fov/2)),
+		scale		= Math.floor(width/num_rays),
 
 
 //map
@@ -115,33 +117,32 @@ text_map.forEach((row, y) => {
 	});
 });
 
-console.log(map);
+console.log(scale);
 
-function rayCast(Sx,Sy,angle){
+function rayCast(Px,Py,angle){
 	cur_angle = angle - fov/2;
-	let xo = Sx,
-		yo = Sy,
-		sin,cos,x,y,dx,
-		xm,ym = Math.floor(x/tile)*tile,Math.floor(y/tile)*tile;
-	ctx.strokeStyle = green;
+	let xo = Px,
+		yo = Py,
+		sin,cos,x,y,d;
 	for (let i = 0; i<num_rays;++i){
 		sin = Math.sin(cur_angle);
 		cos = Math.cos(cur_angle);
-		if (cos >= 0){
-			x = xm + tile;
-			dx = 1
+		for (let dist=0; dist < max_dist; dist+=2){
+			x = xo + dist*cos;
+			y = yo + dist*sin;
+			if (x > width || x < 0 || y > height || y < 0){
+				dist *= Math.cos(player_set.angle - cur_angle);
+				ctx.beginPath();
+				let c = 255/(1+dist*dist*0.0001)+16;
+				ctx.fillStyle = 'rgb('+c+','+c+','+c+')';
+				ctx.fillRect(i*width/num_rays, half_height - 80000/dist/2, scale+1,80000/dist);
+				ctx.closePath();
+				ctx.fill();
+
+				break
+			}
 		}
-		else{
-			x = xm;
-			dx = -1
-		}
-		for (let j =0; j<tile;j+=tile){
-			dist_vert = 
-		}
-		
-		
-	
-	cur_angle += d_angle;
+		cur_angle += d_angle;
 
 	}
 }
@@ -152,13 +153,13 @@ function redrawBackground(){
 	ctx.fillRect(0,0,width,height);
 	ctx.closePath();
 	
-	map.forEach((row,i) => {
+	// map.forEach((row,i) => {
 
 		
-		ctx.fillStyle = blue;
-		ctx.fillRect(row[0],row[1],tile,tile);
+	// 	ctx.fillStyle = blue;
+	// 	ctx.fillRect(row[0],row[1],tile,tile);
 		
-	});
+	// });
 	
 
 
@@ -171,6 +172,9 @@ function redraw(){
 	ctx.arc(player.posx, player.posy, 12, 0, Math.PI*2);
 	ctx.closePath();
 	ctx.fill();
+	ctx.moveTo(player.posx,player.posy);
+	ctx.lineTo(player.posx+500*Math.cos(player_set.angle),player.posy+500*Math.sin(player_set.angle));
+	ctx.stroke()
 	
 	
 	
@@ -178,7 +182,7 @@ function redraw(){
 function gameLoop(){
 	player.movement();
 	redrawBackground();
-	redraw();
+	//redraw();
 	rayCast(player.posx,player.posy,player_set.angle);
 	requestAnimationFrame(gameLoop);
 }
