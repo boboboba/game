@@ -6,57 +6,78 @@ let		canvas = document.createElement('canvas'),
 
 		w		= canvas.width  = window.innerWidth,
 		h 		= canvas.height = window.innerHeight;
+
 		document.querySelector('body').appendChild(canvas);
 
 // game set
-const	tile 		= 100,
-		fov 		= Math.PI/3,
-		num_rays	= 120,
+let		tile		= 64,
+		fov			= Math.PI/2,
+		num_rays	= 960,
 		max_dist	= 1000,
 		d_angle		= fov/num_rays,
-		surface_dist= num_rays / (2*Math.tan(fov/2)),
-		
+		surface_dist= (num_rays/2) / Math.tan(fov/2),
+		coef = 1/5,
 
 
 //map
-		text_map = [
-		'@@@@@@@@@@@',
-		'@.........@',
-		'@...@..@@.@',
-		'@.........@',
-		'@.@.......@',
-		'@.@....@..@',
-		'@.........@',
-		'@@@@@@@@@@@',		
-		],
+		text_map = [//'.......',
+		// '.@.....',
+		// '.......',
+		// '.......',
+		// '......@',
+		// '.......',
+		// '.......',
+		// '.......',
+		'@@@@@@@@@@@@@@@@',
+		'@..............@',
+		'@..@...........@',
+		'@.........@....@',
+		'@..@........@..@',
+		'@..............@',
+		'@.......@......@',
+		'@..............@',	
+		'@.....@........@',	
+		'@.....@@....@..@',	
+		'@..............@',	
+		'@........@.....@',	
+		'@....@.........@',	
+		'@.......@...@..@',	
+		'@..............@',	
+		'@@@@@@@@@@@@@@@@',	
+		];
+const texture = new Image();
+texture.src = 'texture3.jpg';
+console.log(texture);
 
 
 		
 
 // colors
-		black 	= 'rgb(0,0,0)',
-		white 	= 'rgb(255,255,255)',
-		red 	= 'rgb(255, 0, 0)',
-		yellow 	= 'rgb(255, 255, 0)',
+let		black	= 'rgb(0,0,0)',
+		white	= 'rgb(255,255,255)',
+		red		= 'rgb(255, 0, 0)',
+		yellow	= 'rgb(255, 255, 0)',
 		green	= 'rgb(0, 128, 0)',
 		blue	= 'rgb(0, 0, 255)',
 
 		bgcolor = black;
 
 //player set
-let		player_set 	= {
-			x		: 150,
-			y 		: 250,
-			angle	: 0,
-			speed	: 3
+let		player_set	= {
+			x		: 300,
+			y 		: 300,
+			speed	: 6
 		},
-		scale		= (w/num_rays)+2;
+		scale		= Math.ceil(w/num_rays),
+		rays		= [];
 		
 window.onresize = function(){
-w		= canvas.width = innerWidth,
-h		= canvas.height = innerHeight;   
-scale	= (w/num_rays)+2;     
-};
+		w			= canvas.width 	= innerWidth,
+		h			= canvas.height = innerHeight;   
+		scale		= Math.ceil(w/num_rays);   
+		surface_dist= (num_rays/2) / Math.tan(fov/2) ;
+		console.log();
+		};
 
 
 
@@ -66,18 +87,18 @@ class Player{
 	constructor(){
 		this.x = player_set.x;
 		this.y = player_set.y;
-		this.angle = player_set.angle;
+		this.angle = 1.7; //Math.atan(2/4);
 	}
 
 	movement(){		
-		let cos = Math.cos(player_set.angle),
-			sin = Math.sin(player_set.angle);		
-		if (keys[4]) {
-			player_set.angle -= 0.02;
-		}  
-		if (keys[5]) {    
-			player_set.angle += 0.02;
-		}
+		let cos = Math.cos(this.angle),
+			sin = Math.sin(this.angle);		
+		// if (keys[4]) {
+		// 	this.angle -= 0.02;
+		// }  
+		// if (keys[5]) {    
+		// 	this.angle += 0.02;
+		// }
 		if (keys[0]) {
 			this.x += player_set.speed*cos;
 			this.y += player_set.speed*sin;
@@ -94,21 +115,16 @@ class Player{
 			this.x -= player_set.speed*sin;
 			this.y += player_set.speed*cos;
 		}
-		
-
 	}
-
-	get posx(){
-		return this.x;
-	}
-
-	get posy(){
-		return this.y;
-	}
-
-	
-
 };
+
+class Ray{
+	constructor(dist,wall,orient){
+		this.dist = dist;
+		this.wall = wall;
+		this.orient = orient;
+	}
+}
 
 let player = new Player();
 
@@ -119,46 +135,194 @@ text_map.forEach((row, y) => {
 	Array.from(row).forEach((cell, x) => {
 		
 		if (cell == '@') {
-			map.add(String(x*tile)+String(y*tile));
+			map.add(String(x*tile)+','+String(y*tile));
 			
 	}
 	});
 });
 
-console.log(typeof(b));
+console.log(Boolean(0));
+
+function getVerticalCollision(Px,Py,angle){
+	const sin = Math.sin(angle),
+		  cos = Math.cos(angle),
+		  tan = Math.tan(angle);
+	let x,xa,y,ya,dist,da;
+
+	
+	if (cos > 0){
+		xa = tile;
+		x = Math.floor(Px / tile) * tile;
+	}
+	else{
+		xa = - tile;
+		x = Math.floor(Px / tile) * tile + tile - 1;
+	}
+	ya = xa*tan;
+	y = Py - (Px - x) * tan;
+
+	// for (dist; dist < max_dist; dist += da){
+	for (let j = 0; j < text_map[0].length; j++){
+		x += xa;
+		y += ya;
+		if (map.has(String(x-x%tile)+','+String(y-y%tile))){
+			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py));
+			break
+		}
+	}
+	if (dist < max_dist & dist > 0){
+		return{
+			dist,
+			x,
+			y,
+			vertical: true,
+		}
+	}
+	else {
+		return{
+			dist: false,
+			x,
+			y,
+			vertical: true,
+		}
+	}
+}
+
+function getHorizontalCollision(Px,Py,angle){
+	const sin = Math.sin(angle),
+		  cos = Math.cos(angle),
+		  tan = Math.tan(angle);
+	let x,xa,y,ya,dist,da;
+
+	if (sin > 0){
+		ya = tile;
+		y = Math.floor(Py / tile) * tile;
+	}
+	else{
+		ya = - tile;
+		y = Math.floor(Py / tile) * tile + tile - 1;
+	}
+
+	xa = ya/tan;
+	x = Px - (Py - y) / tan;
+	dist = -Math.sqrt((Px - x)*(Px - x) + (Py - y)*(Py - y));
+	da = Math.sqrt(xa*xa + ya*ya);
+	
+	for (let j = 0; j < text_map.length; j++){
+		x += xa;
+		y += ya;
+		if (map.has(String(x-x%tile)+','+String(y-y%tile))){
+			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py));
+			break
+		}
+	}
+	if (dist < max_dist & dist > 0){
+		return{
+			dist,
+			x,
+			y,
+			vertical: false,
+		}
+	}
+	else {
+		return{
+			dist: false,
+			x,
+			y,
+			vertical: false,
+		}
+	}
+}
+
+function getDistance(Px,Py,cur_angle){
+	let dist;
+	if ( (getHorizontalCollision(Px,Py,cur_angle).dist > 1) &  (getVerticalCollision(Px,Py,cur_angle).dist > 1)){
+		if (getHorizontalCollision(Px,Py,cur_angle).dist>getVerticalCollision(Px,Py,cur_angle).dist){
+			return getVerticalCollision(Px,Py,cur_angle);
+		}
+		else{
+			return getHorizontalCollision(Px,Py,cur_angle);
+		}
+	}
+	else {
+		if (getHorizontalCollision(Px,Py,cur_angle).dist<getVerticalCollision(Px,Py,cur_angle).dist){
+			return getVerticalCollision(Px,Py,cur_angle);
+		}
+		else{
+			return getHorizontalCollision(Px,Py,cur_angle);
+		}
+	}
+	
+}
 
 function rayCast(Px,Py,angle){
 	let cur_angle = angle - fov/2;
-	let xo = Px,
-		yo = Py,
-		sin,cos,x,y,d;
+	
 	for (let i = 0; i<num_rays;i+=1){
-		sin = Math.sin(cur_angle);
-		cos = Math.cos(cur_angle);
-		for (let dist=0; dist < max_dist; dist+=2){
-			x = xo + dist*cos;
-			y = yo + dist*sin;
-			if (map.has(String(x-x%tile)+String(y-y%tile))){
-				dist *= Math.cos(player_set.angle - cur_angle);
-				ctx.beginPath();
-				let c = 255/(1+dist*dist*0.0001)+16;
-				ctx.fillStyle = 'rgb('+c+','+(c+64)+','+c+')';
-				ctx.fillRect(i*w/num_rays, h/2 - 80000/dist/2, scale,80000/dist);
-				ctx.closePath();
-				ctx.fill();
 
-				break
-			}
+		let ray = getDistance(Px,Py,cur_angle);
+		let dist = ray.dist;
+		let offset;
+		// ctx.moveTo(player.x * coef,player.y * coef);
+		// ctx.lineTo(player.x * coef+dist*Math.cos(cur_angle) * coef,player.y * coef+dist*Math.sin(cur_angle) * coef);
+		// ctx.stroke();
+		dist *= Math.cos(cur_angle - angle);
+		// let c = 255/(1+dist*0.001)+16;
+		if (ray.vertical){
+			offset = ray.y % tile; 
 		}
+		if (!ray.vertical){
+			offset = ray.x % tile;
+		}
+		if (offset < 1 || offset > tile - 1){
+			offset = Math.floor(offset)
+		}
+		ctx.drawImage(texture, texture.width * offset / tile, 0,  texture.width/tile,texture.height,
+						i*scale,  (h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);
+		// ctx.fillStyle = 'rgb('+c+','+c+','+c+')';
+		// ctx.fillRect(i*scale, (h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);		
+		// ctx.fill();
+	
+		
 		cur_angle += d_angle;
+	
+}}
 
+let lastCalledTime,
+	fps,
+	sec = Date.now(),
+	delta;
+function getFPS() {
+	if(!lastCalledTime) {
+		lastCalledTime = Date.now();
+		fps = 0;
+		return;
+	}
+	delta = (Date.now() - lastCalledTime)/1000;
+	lastCalledTime = Date.now();
+	fps = 1/delta;
+	if (Date.now() - sec>1000){
+		sec = Date.now();
+		console.log(fps);
+	}
+
+
+} 
+
+
+
+function getWall(x,y){
+	for (let i = 0; i < map.size; i++){
+		map[i]
 	}
 }
 
 function redrawBackground(){
 	ctx.beginPath();
-	ctx.fillStyle = bgcolor;
-	ctx.fillRect(0,0,w,h);
+	ctx.fillStyle = yellow;
+	ctx.fillRect(0,0,w,h/2);
+	ctx.fillStyle = blue;
+	ctx.fillRect(0,h/2,w,h/2);
 	ctx.closePath();
 	
 	// map.forEach((row,i) => {
@@ -177,22 +341,30 @@ function redraw(){
 	ctx.beginPath();
 	ctx.fillStyle = green;
 	ctx.strokeStyle = green;
-	ctx.arc(player.posx, player.posy, 12, 0, Math.PI*2);
+	ctx.arc(player.x * coef, player.y * coef, 5, 0, Math.PI*2);
 	ctx.closePath();
 	ctx.fill();
-	ctx.moveTo(player.posx,player.posy);
-	ctx.lineTo(player.posx+500*Math.cos(player_set.angle),player.posy+500*Math.sin(player_set.angle));
+	ctx.moveTo(player.x * coef,player.y * coef);
+	ctx.lineTo(player.x * coef+500*Math.cos(player.angle) * coef,player.y * coef+500*Math.sin(player.angle) * coef);
 	ctx.stroke()
-	
+	map.forEach((row,i) => {
+
+		let a = row.split(',');
+		ctx.fillStyle = blue;
+		ctx.fillRect(a[0]* coef,a[1]* coef,tile* coef,tile* coef);
+		
+	});
 	
 	
 }
 function gameLoop(){
 	player.movement();
 	redrawBackground();
-	//redraw();
-	rayCast(player.posx,player.posy,player_set.angle);
+	
+	rayCast(player.x,player.y,player.angle);
+	redraw();
 	requestAnimationFrame(gameLoop);
+	getFPS();
 }
 
 gameLoop();
@@ -210,12 +382,12 @@ document.addEventListener("keydown", (e) => {
 	if (e.keyCode === 68) {
 		keys[3] = true;
 	}
-	if (e.keyCode === 37) {
-		keys[4] = true;
-	}
-	if (e.keyCode === 39) {
-		keys[5] = true;
-	}
+	// if (e.keyCode === 37) {
+	// 	keys[4] = true;
+	// }
+	// if (e.keyCode === 39) {
+	// 	keys[5] = true;
+	// }
 
 		})
 document.addEventListener("keyup", (e) => {
@@ -240,10 +412,11 @@ document.addEventListener("keyup", (e) => {
  });
 
 document.addEventListener("mousemove", function (event) {
-  player_set.angle += event.movementX*fov/w;
+  player.angle += event.movementX*fov/w;
 });
 
 canvas.addEventListener("click", () => {
   canvas.requestPointerLock();
 });
+
 
