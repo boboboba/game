@@ -12,42 +12,35 @@ let		canvas = document.createElement('canvas'),
 // game set
 let		tile		= 64,
 		fov			= Math.PI/2,
-		num_rays	= 960,
+		num_rays	= w/3,
 		max_dist	= 1000,
-		d_angle		= fov/num_rays,
+		delta_angle		= fov/num_rays,
 		surface_dist= (num_rays/2) / Math.tan(fov/2),
 		coef = 1/5,
 
 
 //map
-		text_map = [//'.......',
-		// '.@.....',
-		// '.......',
-		// '.......',
-		// '......@',
-		// '.......',
-		// '.......',
-		// '.......',
+		text_map = [
 		'@@@@@@@@@@@@@@@@',
-		'@..............@',
-		'@..@...........@',
-		'@.........@....@',
+		'@......@....@..@',
 		'@..@........@..@',
-		'@..............@',
-		'@.......@......@',
+		'@.....@@..@....@',
+		'@..@........@..@',
+		'@......@.......@',
+		'@..@@@..@.@..@.@',
 		'@..............@',	
-		'@.....@........@',	
+		'@.....@...@@...@',	
 		'@.....@@....@..@',	
-		'@..............@',	
-		'@........@.....@',	
+		'@.@@@..........@',	
+		'@......@.@...@.@',	
 		'@....@.........@',	
-		'@.......@...@..@',	
-		'@..............@',	
+		'@..@....@...@..@',	
+		'@......@...@...@',	
 		'@@@@@@@@@@@@@@@@',	
 		];
 const texture = new Image();
-texture.src = 'texture3.jpg';
-console.log(texture);
+texture.src = '3.jpg';
+
 
 
 		
@@ -59,14 +52,16 @@ let		black	= 'rgb(0,0,0)',
 		yellow	= 'rgb(255, 255, 0)',
 		green	= 'rgb(0, 128, 0)',
 		blue	= 'rgb(0, 0, 255)',
+		brown 	= 'rgb(150, 75, 0)',
+		lightblue = '	rgb(128,128,255)',
 
 		bgcolor = black;
 
 //player set
 let		player_set	= {
-			x		: 300,
-			y 		: 300,
-			speed	: 6
+			x		:100,
+			y 		:100,
+			speed	:3
 		},
 		scale		= Math.ceil(w/num_rays),
 		rays		= [];
@@ -75,8 +70,7 @@ window.onresize = function(){
 		w			= canvas.width 	= innerWidth,
 		h			= canvas.height = innerHeight;   
 		scale		= Math.ceil(w/num_rays);   
-		surface_dist= (num_rays/2) / Math.tan(fov/2) ;
-		console.log();
+		surface_dist= (num_rays/2) / Math.tan(fov/2);
 		};
 
 
@@ -87,7 +81,8 @@ class Player{
 	constructor(){
 		this.x = player_set.x;
 		this.y = player_set.y;
-		this.angle = 1.7; //Math.atan(2/4);
+		this.angle = 0;
+		this.vangle = 0; //Math.atan(2/4);
 	}
 
 	movement(){		
@@ -99,22 +94,34 @@ class Player{
 		// if (keys[5]) {    
 		// 	this.angle += 0.02;
 		// }
+		let nextX = this.x,
+			nextY = this.y,
+			dx,dy;
 		if (keys[0]) {
-			this.x += player_set.speed*cos;
-			this.y += player_set.speed*sin;
+			nextX += player_set.speed*cos;
+			nextY += player_set.speed*sin;
 		}
 		if (keys[1]) {
-			this.x += player_set.speed*sin;
-			this.y -= player_set.speed*cos;
+			nextX += player_set.speed*sin;
+			nextY -= player_set.speed*cos;
 		}
 		if (keys[2]) {
-			this.x -= player_set.speed*cos;
-			this.y -= player_set.speed*sin;
+			nextX -= player_set.speed*cos;
+			nextY -= player_set.speed*sin;
 		}
 		if (keys[3]) {
-			this.x -= player_set.speed*sin;
-			this.y += player_set.speed*cos;
+			nextX -= player_set.speed*sin;
+			nextY += player_set.speed*cos;
 		}
+
+		if (!getWall(nextX,this.y)){
+			this.x = nextX
+		}
+
+		if (!getWall(this.x, nextY)){
+			this.y = nextY
+		}
+		
 	}
 };
 
@@ -143,6 +150,10 @@ text_map.forEach((row, y) => {
 
 console.log(Boolean(0));
 
+function getWall(x,y){
+	return map.has(String(x-x%tile)+','+String(y-y%tile));
+}
+
 function getVerticalCollision(Px,Py,angle){
 	const sin = Math.sin(angle),
 		  cos = Math.cos(angle),
@@ -165,8 +176,8 @@ function getVerticalCollision(Px,Py,angle){
 	for (let j = 0; j < text_map[0].length; j++){
 		x += xa;
 		y += ya;
-		if (map.has(String(x-x%tile)+','+String(y-y%tile))){
-			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py));
+		if (getWall(x,y)){
+			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py))+1;
 			break
 		}
 	}
@@ -211,8 +222,8 @@ function getHorizontalCollision(Px,Py,angle){
 	for (let j = 0; j < text_map.length; j++){
 		x += xa;
 		y += ya;
-		if (map.has(String(x-x%tile)+','+String(y-y%tile))){
-			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py));
+		if (getWall(x,y)){
+			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py))+1;
 			break
 		}
 	}
@@ -234,8 +245,7 @@ function getHorizontalCollision(Px,Py,angle){
 	}
 }
 
-function getDistance(Px,Py,cur_angle){
-	let dist;
+function getCollision(Px,Py,cur_angle){
 	if ( (getHorizontalCollision(Px,Py,cur_angle).dist > 1) &  (getVerticalCollision(Px,Py,cur_angle).dist > 1)){
 		if (getHorizontalCollision(Px,Py,cur_angle).dist>getVerticalCollision(Px,Py,cur_angle).dist){
 			return getVerticalCollision(Px,Py,cur_angle);
@@ -260,31 +270,33 @@ function rayCast(Px,Py,angle){
 	
 	for (let i = 0; i<num_rays;i+=1){
 
-		let ray = getDistance(Px,Py,cur_angle);
+		let ray = getCollision(Px,Py,cur_angle);
 		let dist = ray.dist;
 		let offset;
 		// ctx.moveTo(player.x * coef,player.y * coef);
 		// ctx.lineTo(player.x * coef+dist*Math.cos(cur_angle) * coef,player.y * coef+dist*Math.sin(cur_angle) * coef);
 		// ctx.stroke();
 		dist *= Math.cos(cur_angle - angle);
-		// let c = 255/(1+dist*0.001)+16;
+		
 		if (ray.vertical){
 			offset = ray.y % tile; 
 		}
 		if (!ray.vertical){
 			offset = ray.x % tile;
 		}
-		if (offset < 1 || offset > tile - 1){
-			offset = Math.floor(offset)
-		}
-		ctx.drawImage(texture, texture.width * offset / tile, 0,  texture.width/tile,texture.height,
-						i*scale,  (h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);
+		// if (offset < 1 || offset > tile - 1){
+		// 	offset = Math.floor(offset)
+		// }
+		let c = dist/max_dist;
+		ctx.drawImage(texture, Math.floor(texture.width * offset / tile), 0,  1,texture.height,
+						i*scale,  h*player.vangle+(h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);
+		ctx.fillStyle = 'rgba(0,0,0,' + c + ')';
 		// ctx.fillStyle = 'rgb('+c+','+c+','+c+')';
-		// ctx.fillRect(i*scale, (h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);		
+		ctx.fillRect(i*scale,  h*player.vangle+(h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);		
 		// ctx.fill();
 	
 		
-		cur_angle += d_angle;
+		cur_angle += delta_angle;
 	
 }}
 
@@ -303,7 +315,6 @@ function getFPS() {
 	fps = 1/delta;
 	if (Date.now() - sec>1000){
 		sec = Date.now();
-		console.log(fps);
 	}
 
 
@@ -311,18 +322,14 @@ function getFPS() {
 
 
 
-function getWall(x,y){
-	for (let i = 0; i < map.size; i++){
-		map[i]
-	}
-}
+
 
 function redrawBackground(){
 	ctx.beginPath();
-	ctx.fillStyle = yellow;
-	ctx.fillRect(0,0,w,h/2);
-	ctx.fillStyle = blue;
-	ctx.fillRect(0,h/2,w,h/2);
+	ctx.fillStyle = lightblue;
+	ctx.fillRect(0,0,w, h*player.vangle+h/2);
+	ctx.fillStyle = brown;
+	ctx.fillRect(0, h*player.vangle+h/2,w,h - h*player.vangle+h/2);
 	ctx.closePath();
 	
 	// map.forEach((row,i) => {
@@ -357,17 +364,17 @@ function redraw(){
 	
 	
 }
-function gameLoop(){
+setInterval(function gameLoop(){
 	player.movement();
 	redrawBackground();
-	
 	rayCast(player.x,player.y,player.angle);
 	redraw();
-	requestAnimationFrame(gameLoop);
-	getFPS();
-}
+	// requestAnimationFrame(gameLoop);
+	//getFPS();
 
-gameLoop();
+
+},15);
+
 
 document.addEventListener("keydown", (e) => {
 	if (e.keyCode=== 87) {
@@ -413,6 +420,8 @@ document.addEventListener("keyup", (e) => {
 
 document.addEventListener("mousemove", function (event) {
   player.angle += event.movementX*fov/w;
+  if (Math.abs(player.vangle - event.movementY*fov*16/9/w) < Math.PI/2)
+  player.vangle -= event.movementY*fov*16/9/w/2;
 });
 
 canvas.addEventListener("click", () => {
@@ -420,3 +429,4 @@ canvas.addEventListener("click", () => {
 });
 
 
+console.log(getCollision(player.x,player.y,player.angle));
