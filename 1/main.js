@@ -8,8 +8,8 @@ const 	width 		= canvas.width  = window.innerWidth,
 		half_width 	= Math.floor(width/2),
 		half_height = Math.floor(height/2),
 		tile 		= 100,
-		fov 		= Math.PI/3,
-		num_rays	= 480,
+		fov 		= Math.PI/2,
+		num_rays	= 60,
 		max_dist	= 2000,
 		d_angle		= fov/num_rays,
 		surface_dist= num_rays / (2*Math.tan(fov/2)),
@@ -18,14 +18,14 @@ const 	width 		= canvas.width  = window.innerWidth,
 
 //map
 		text_map = [
-		'@@@@@@@@',
-		'@......@',
-		'@......@',
-		'@..@...@',
-		'@......@',
-		'@..@...@',
-		'@......@',
-		'@@@@@@@@',		
+		'@@@@@@@@@@@@@@@',
+		'@..@..........@',
+		'@.........@...@',
+		'@..@..@@..@...@',
+		'@.............@',
+		'@..@.....@....@',
+		'@........@@...@',
+		'@@@@@@@@@@@@@@@',		
 		]
 
 
@@ -43,9 +43,9 @@ const 	width 		= canvas.width  = window.innerWidth,
 
 //player set
 let		player_set 	= {
-			x		: half_width,
-			y 		: half_height,
-			angle	: 0,
+			x		: 673,
+			y 		: 220,
+			angle	: -3.799999999,
 			speed	: 5
 		},
 
@@ -62,13 +62,13 @@ class Player{
 	}
 
 	movement(){		
-		cos = Math.cos(player_set.angle);
-		sin = Math.sin(player_set.angle);		
+		cos = Math.cos(player.angle);
+		sin = Math.sin(player.angle);		
 		if (keys[4]) {
-			player_set.angle -= 0.05;
+			player.angle -= 0.05;
 		}  
 		if (keys[5]) {    
-			player_set.angle += 0.05;
+			player.angle += 0.05;
 		}
 		if (keys[0]) {
 			this.x += player_set.speed*cos;
@@ -89,15 +89,6 @@ class Player{
 		
 
 	}
-
-	get posx(){
-		return this.x;
-	}
-
-	get posy(){
-		return this.y;
-	}
-
 	
 
 }
@@ -111,12 +102,17 @@ let map = new Set();
 
 text_map.forEach((row, y) => {
 	Array.from(row).forEach((cell, x) => {
+		
 		if (cell == '@') {
-			map.add([x*tile,y*tile])
+			map.add(String(x*tile)+','+String(y*tile));
+			
 	}
 	});
 });
 
+function getWall(x,y){
+	return map.has(String(x-x%tile)+','+String(y-y%tile));
+}
 console.log(scale);
 
 function rayCast(Px,Py,angle){
@@ -127,15 +123,19 @@ function rayCast(Px,Py,angle){
 	for (let i = 0; i<num_rays;++i){
 		sin = Math.sin(cur_angle);
 		cos = Math.cos(cur_angle);
-		for (let dist=0; dist < max_dist; dist+=2){
+		for (let dist=0; dist < max_dist; dist+=1){
 			x = xo + dist*cos;
 			y = yo + dist*sin;
-			if (x > width || x < 0 || y > height || y < 0){
-				dist *= Math.cos(player_set.angle - cur_angle);
+			if (getWall(x,y)){
+				ctx.lineWidth = 3;
+				ctx.moveTo(player.x,player.y);
+				ctx.lineTo(player.x+dist*Math.cos(cur_angle),player.y+dist*Math.sin(cur_angle));
+				ctx.stroke();
+				dist *= Math.cos(player.angle - cur_angle);
 				ctx.beginPath();
-				let c = 255/(1+dist*dist*0.0001)+16;
+				let c = 255/dist*128;
 				ctx.fillStyle = 'rgb('+c+','+c+','+c+')';
-				ctx.fillRect(i*width/num_rays, half_height - 80000/dist/2, scale,80000/dist);
+				//ctx.fillRect(i*width/num_rays, (height - scale*surface_dist*tile/dist)/2,scale, scale*surface_dist*tile/dist);
 				ctx.closePath();
 				ctx.fill();
 
@@ -153,13 +153,17 @@ function redrawBackground(){
 	ctx.fillRect(0,0,width,height);
 	ctx.closePath();
 	
-	// map.forEach((row,i) => {
+	text_map.forEach((row,i) => {
 
 		
-	// 	ctx.fillStyle = blue;
-	// 	ctx.fillRect(row[0],row[1],tile,tile);
-		
-	// });
+		ctx.fillStyle = blue;
+		console.log(row)
+		Array.from(row).forEach((coloumn,j) => {
+			if (coloumn == '@'){
+				ctx.fillRect(j*tile,i*tile,tile,tile);
+			}
+		})
+	});
 	
 
 
@@ -169,12 +173,12 @@ function redraw(){
 	ctx.beginPath();
 	ctx.fillStyle = green;
 	ctx.strokeStyle = green;
-	ctx.arc(player.posx, player.posy, 12, 0, Math.PI*2);
+	ctx.arc(player.x, player.y, 12, 0, Math.PI*2);
 	ctx.closePath();
 	ctx.fill();
-	ctx.moveTo(player.posx,player.posy);
-	ctx.lineTo(player.posx+500*Math.cos(player_set.angle),player.posy+500*Math.sin(player_set.angle));
-	ctx.stroke()
+	// ctx.moveTo(player.posx,player.posy);
+	// ctx.lineTo(player.posx+500*Math.cos(player_set.angle),player.posy+500*Math.sin(player_set.angle));
+	// ctx.stroke()
 	
 	
 	
@@ -182,9 +186,10 @@ function redraw(){
 function gameLoop(){
 	player.movement();
 	redrawBackground();
-	//redraw();
-	rayCast(player.posx,player.posy,player_set.angle);
+	redraw();
+	rayCast(player.x,player.y,player.angle);
 	requestAnimationFrame(gameLoop);
+	console.log(player.angle)
 }
 
 gameLoop();

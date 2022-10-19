@@ -11,7 +11,7 @@ let		canvas = document.createElement('canvas'),
 
 // game set
 let		tile		= 64,
-		fov			= Math.PI/2,
+		fov			= 70   * Math.PI/180,
 		num_rays	= w/3,
 		max_dist	= 1000,
 		delta_angle		= fov/num_rays,
@@ -39,7 +39,9 @@ let		tile		= 64,
 		'@@@@@@@@@@@@@@@@',	
 		];
 const texture = new Image();
-texture.src = '3.jpg';
+texture.src = '4.png';
+const sky = new Image();
+sky.src = 'sky.jpg'
 
 
 
@@ -125,6 +127,13 @@ class Player{
 	}
 };
 
+// class Enemy(){
+// 	constructor(x,y){
+// 		this.x = x;
+// 		this.y = y;
+// 	}
+// }
+
 class Ray{
 	constructor(dist,wall,orient){
 		this.dist = dist;
@@ -172,7 +181,6 @@ function getVerticalCollision(Px,Py,angle){
 	ya = xa*tan;
 	y = Py - (Px - x) * tan;
 
-	// for (dist; dist < max_dist; dist += da){
 	for (let j = 0; j < text_map[0].length; j++){
 		x += xa;
 		y += ya;
@@ -252,7 +260,7 @@ function getCollision(Px,Py,cur_angle){
 		}
 		else{
 			return getHorizontalCollision(Px,Py,cur_angle);
-		}
+	 }
 	}
 	else {
 		if (getHorizontalCollision(Px,Py,cur_angle).dist<getVerticalCollision(Px,Py,cur_angle).dist){
@@ -268,7 +276,7 @@ function getCollision(Px,Py,cur_angle){
 function rayCast(Px,Py,angle){
 	let cur_angle = angle - fov/2;
 	
-	for (let i = 0; i<num_rays;i+=1){
+	for (let i = 0; i<num_rays;i++){
 
 		let ray = getCollision(Px,Py,cur_angle);
 		let dist = ray.dist;
@@ -298,7 +306,8 @@ function rayCast(Px,Py,angle){
 		
 		cur_angle += delta_angle;
 	
-}}
+	}
+}
 
 let lastCalledTime,
 	fps,
@@ -325,9 +334,13 @@ function getFPS() {
 
 
 function redrawBackground(){
+	let skyoffset = -player.angle*w/Math.PI % w;
+	ctx.drawImage(sky,skyoffset+w,h*player.vangle+(h/2 - w),w,w);
+	ctx.drawImage(sky,skyoffset,h*player.vangle+(h/2 - w),w,w);
+	ctx.drawImage(sky,skyoffset-w,h*player.vangle+(h/2 - w),w,w);
 	ctx.beginPath();
-	ctx.fillStyle = lightblue;
-	ctx.fillRect(0,0,w, h*player.vangle+h/2);
+	// ctx.fillStyle = lightblue;
+	// ctx.fillRect(0,0,w, h*player.vangle+h/2);
 	ctx.fillStyle = brown;
 	ctx.fillRect(0, h*player.vangle+h/2,w,h - h*player.vangle+h/2);
 	ctx.closePath();
@@ -344,15 +357,18 @@ function redrawBackground(){
 
 }
 
-function redraw(){
+function minimap(){
+	let line = getCollision(player.x,player.y,player.angle).dist
 	ctx.beginPath();
+	ctx.fillStyle = red;
+	ctx.fillRect(0,0,text_map[0].length * tile * coef, text_map.length * tile * coef);
 	ctx.fillStyle = green;
 	ctx.strokeStyle = green;
 	ctx.arc(player.x * coef, player.y * coef, 5, 0, Math.PI*2);
 	ctx.closePath();
 	ctx.fill();
 	ctx.moveTo(player.x * coef,player.y * coef);
-	ctx.lineTo(player.x * coef+500*Math.cos(player.angle) * coef,player.y * coef+500*Math.sin(player.angle) * coef);
+	ctx.lineTo((player.x + line * Math.cos(player.angle)) * coef,(player.y + line * Math.sin(player.angle)) * coef);
 	ctx.stroke()
 	map.forEach((row,i) => {
 
@@ -368,7 +384,7 @@ setInterval(function gameLoop(){
 	player.movement();
 	redrawBackground();
 	rayCast(player.x,player.y,player.angle);
-	redraw();
+	minimap();
 	// requestAnimationFrame(gameLoop);
 	//getFPS();
 
@@ -420,13 +436,10 @@ document.addEventListener("keyup", (e) => {
 
 document.addEventListener("mousemove", function (event) {
   player.angle += event.movementX*fov/w;
-  if (Math.abs(player.vangle - event.movementY*fov*16/9/w) < Math.PI/2)
+  if (Math.abs(player.vangle - event.movementY*fov*16/9/w) < Math.PI/8)
   player.vangle -= event.movementY*fov*16/9/w/2;
 });
 
 canvas.addEventListener("click", () => {
   canvas.requestPointerLock();
 });
-
-
-console.log(getCollision(player.x,player.y,player.angle));
