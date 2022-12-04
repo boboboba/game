@@ -7,7 +7,7 @@ const 	width 		= canvas.width  = window.innerWidth,
 		height 		= canvas.height = window.innerHeight,
 		half_width 	= Math.floor(width/2),
 		half_height = Math.floor(height/2),
-		tile 		= 100,
+		tile 		= 32,
 		fov 		= Math.PI/2,
 		num_rays	= 60,
 		max_dist	= 2000,
@@ -18,15 +18,23 @@ const 	width 		= canvas.width  = window.innerWidth,
 
 //map
 		text_map = [
-		'@@@@@@@@@@@@@@@',
-		'@..@..........@',
-		'@.........@...@',
-		'@..@..@@..@...@',
-		'@.............@',
-		'@..@.....@....@',
-		'@........@@...@',
-		'@@@@@@@@@@@@@@@',		
-		]
+		'@@@@@@@@@@@@@@@@',
+		'@......@....@..@',
+		'@..@........@..@',
+		'@.....@@..@....@',
+		'@..@........@..@',
+		'@......@.......@',
+		'@..@@@..@.@..@.@',
+		'@..............@',	
+		'@.....@...@@...@',	
+		'@.....@@....@..@',	
+		'@.@@@..........@',	
+		'@......@.@...@.@',	
+		'@....@.........@',	
+		'@..@....@...@..@',	
+		'@......@...@...@',	
+		'@@@@@@@@@@@@@@@@',	
+		];
 
 
 		
@@ -39,7 +47,7 @@ const 	width 		= canvas.width  = window.innerWidth,
 		green	= 'rgb(0, 128, 0)',
 		blue	= 'rgb(0, 0, 255)'
 
-		bgcolor = black;
+		bgcolor = white;
 
 //player set
 let		player_set 	= {
@@ -129,7 +137,7 @@ function rayCast(Px,Py,angle){
 			if (getWall(x,y)){
 				ctx.lineWidth = 3;
 				ctx.moveTo(player.x,player.y);
-				ctx.lineTo(player.x+dist*Math.cos(cur_angle),player.y+dist*Math.sin(cur_angle));
+				// ctx.lineTo(player.x+dist*Math.cos(cur_angle),player.y+dist*Math.sin(cur_angle));
 				ctx.stroke();
 				dist *= Math.cos(player.angle - cur_angle);
 				ctx.beginPath();
@@ -170,15 +178,18 @@ function redrawBackground(){
 }
 
 function redraw(){
+	ctx.moveTo(player.x,player.y);
+	ctx.lineWidth = 1;
+	ctx.strokeStyle = 'rgb(255,0,0)';
+	ctx.lineTo(player.x+64*Math.cos(player.angle),player.y+64*Math.sin(player.angle));
+	ctx.stroke()
 	ctx.beginPath();
 	ctx.fillStyle = green;
 	ctx.strokeStyle = green;
-	ctx.arc(player.x, player.y, 12, 0, Math.PI*2);
+	ctx.arc(player.x, player.y, 7, 0, Math.PI*2);
 	ctx.closePath();
 	ctx.fill();
-	// ctx.moveTo(player.posx,player.posy);
-	// ctx.lineTo(player.posx+500*Math.cos(player_set.angle),player.posy+500*Math.sin(player_set.angle));
-	// ctx.stroke()
+	ctx.moveTo(player.x,player.y);
 	
 	
 	

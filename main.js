@@ -1,45 +1,53 @@
 'use strict'
 
-let		canvas = document.createElement('canvas'),
-		ctx = canvas.getContext('2d'),
+let		canvas = document.createElement('canvas'), //Создание холста
+		ctx = canvas.getContext('2d'), //создание переменной контекста. Через обращение к ней будет выводиться все изображение
 
-
+// Ширина и высота экрана и холста
 		w		= canvas.width  = window.innerWidth,
 		h 		= canvas.height = window.innerHeight;
 
 		document.querySelector('body').appendChild(canvas);
 
 // game set
-let		tile		= 64,
+let		tile		= 64, 
 		fov			= 70   * Math.PI/180,
 		num_rays	= w/3,
-		max_dist	= 1000,
+		max_dist	= tile*16,
 		delta_angle		= fov/num_rays,
 		surface_dist= (num_rays/2) / Math.tan(fov/2),
-		coef = 1/5,
+		coef = 16/tile,
 
 
-//map
+//Карта
 		text_map = [
-		'@@@@@@@@@@@@@@@@',
-		'@......@....@..@',
-		'@..@........@..@',
-		'@.....@@..@....@',
-		'@..@........@..@',
-		'@......@.......@',
-		'@..@@@..@.@..@.@',
-		'@..............@',	
-		'@.....@...@@...@',	
-		'@.....@@....@..@',	
-		'@.@@@..........@',	
-		'@......@.@...@.@',	
-		'@....@.........@',	
-		'@..@....@...@..@',	
-		'@......@...@...@',	
-		'@@@@@@@@@@@@@@@@',	
+		'1111111111111111',
+		'1......1....1..1',
+		'1..1........1..1',
+		'1..............1',
+		'1..2........2..1',
+		'1......3.......1',
+		'1..............1',
+		'1..............1',	
+		'1.....3...22...1',	
+		'1....2.3....3..1',	
+		'2.3.......3...1',	
+		'3......333...2.1',	
+		'1....2.........1',	
+		'1..2....2...2..1',	
+		'1......2...2...1',	
+		'1111111111111111',	
 		];
-const texture = new Image();
-texture.src = '4.png';
+const textures = {
+	a:new Image(),
+	b:new Image(),
+	c:new Image(),
+	
+}
+textures.a.src = '1.jpg';
+textures.b.src = '4.png';
+textures.c.src = '3.jpg';
+
 const sky = new Image();
 sky.src = 'sky.jpg'
 
@@ -47,7 +55,7 @@ sky.src = 'sky.jpg'
 
 		
 
-// colors
+//Цвета
 let		black	= 'rgb(0,0,0)',
 		white	= 'rgb(255,255,255)',
 		red		= 'rgb(255, 0, 0)',
@@ -61,12 +69,13 @@ let		black	= 'rgb(0,0,0)',
 
 //player set
 let		player_set	= {
-			x		:100,
-			y 		:100,
-			speed	:3
+			x		:tile+1,
+			y 		:tile+1,
+			speed	:tile/16,
 		},
 		scale		= Math.ceil(w/num_rays),
 		rays		= [];
+
 		
 window.onresize = function(){
 		w			= canvas.width 	= innerWidth,
@@ -79,14 +88,18 @@ window.onresize = function(){
 
 let keys = [false,false,false,false,false,false,false,false];
 
+//Класс игрок
 class Player{
 	constructor(){
+		//Координаты игрока
 		this.x = player_set.x;
 		this.y = player_set.y;
+		//Горизонтальный угол
 		this.angle = 0;
+		//Вертикальный угол
 		this.vangle = 0; //Math.atan(2/4);
 	}
-
+//Передвижение игрока
 	movement(){		
 		let cos = Math.cos(this.angle),
 			sin = Math.sin(this.angle);		
@@ -144,23 +157,45 @@ class Ray{
 
 let player = new Player();
 
-
-let map = new Set();
-let b = new Array(0,0);
+//Импорт текстовой карты в моножество с координатами каждой
+let map = {
+	a:new Set(),
+	b:new Set(),
+	c:new Set()
+	}
 text_map.forEach((row, y) => {
 	Array.from(row).forEach((cell, x) => {
 		
-		if (cell == '@') {
-			map.add(String(x*tile)+','+String(y*tile));
+		if (cell == '1') {
+			map.a.add(String(x*tile)+','+String(y*tile));
 			
-	}
+		}
+		else if (cell == '2') {
+			map.b.add(String(x*tile)+','+String(y*tile));
+			
+		}
+		if (cell == '3') {
+			map.c.add(String(x*tile)+','+String(y*tile));
+			
+		}
+
 	});
 });
 
 console.log(Boolean(0));
 
 function getWall(x,y){
-	return map.has(String(x-x%tile)+','+String(y-y%tile));
+	let z = String(x-x%tile)+','+String(y-y%tile);
+	if (map.a.has(z)){
+		return '1';
+	}
+	else if (map.b.has(z)){
+		return '2';
+	}
+	else if (map.c.has(z)){
+		return '3';
+	}
+	else return false;
 }
 
 function getVerticalCollision(Px,Py,angle){
@@ -184,27 +219,20 @@ function getVerticalCollision(Px,Py,angle){
 	for (let j = 0; j < text_map[0].length; j++){
 		x += xa;
 		y += ya;
-		if (getWall(x,y)){
+		if (['1','2','3'].includes( getWall(x,y)) ){
 			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py))+1;
 			break
 		}
 	}
-	if (dist < max_dist & dist > 0){
-		return{
-			dist,
-			x,
-			y,
-			vertical: true,
-		}
+	let t = getWall(x,y);
+	return{
+		t,
+		dist,
+		x,
+		y,
+		vertical: true,
 	}
-	else {
-		return{
-			dist: false,
-			x,
-			y,
-			vertical: true,
-		}
-	}
+
 }
 
 function getHorizontalCollision(Px,Py,angle){
@@ -230,27 +258,20 @@ function getHorizontalCollision(Px,Py,angle){
 	for (let j = 0; j < text_map.length; j++){
 		x += xa;
 		y += ya;
-		if (getWall(x,y)){
+		if (['1','2','3'].includes( getWall(x,y)) ){
 			dist = Math.sqrt((x - Px)*(x - Px) + (y - Py)*(y - Py))+1;
 			break
 		}
 	}
-	if (dist < max_dist & dist > 0){
-		return{
-			dist,
-			x,
-			y,
-			vertical: false,
-		}
+	let t = getWall(x,y);
+	return{
+		t,
+		dist,
+		x,
+		y,
+		vertical: false,
 	}
-	else {
-		return{
-			dist: false,
-			x,
-			y,
-			vertical: false,
-		}
-	}
+
 }
 
 function getCollision(Px,Py,cur_angle){
@@ -296,11 +317,23 @@ function rayCast(Px,Py,angle){
 		// 	offset = Math.floor(offset)
 		// }
 		let c = dist/max_dist;
+		let proj_height = scale*surface_dist*tile/dist;
+		let texture;
+
+		if (ray.t == '1'){
+			texture = textures.a;
+		}
+		if (ray.t == '2'){
+			texture = textures.b;
+		}
+		if (ray.t == '3'){
+			texture = textures.c;
+		}
 		ctx.drawImage(texture, Math.floor(texture.width * offset / tile), 0,  1,texture.height,
-						i*scale,  h*player.vangle+(h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);
+						i*scale,  h*player.vangle+(h - proj_height)/2, scale,proj_height);
 		ctx.fillStyle = 'rgba(0,0,0,' + c + ')';
 		// ctx.fillStyle = 'rgb('+c+','+c+','+c+')';
-		ctx.fillRect(i*scale,  h*player.vangle+(h - scale*surface_dist*tile/dist)/2, scale,scale*surface_dist*tile/dist);		
+		//ctx.fillRect(i*scale,  h*player.vangle+(h - proj_height)/2, scale,proj_height);		
 		// ctx.fill();
 	
 		
@@ -341,7 +374,10 @@ function redrawBackground(){
 	ctx.beginPath();
 	// ctx.fillStyle = lightblue;
 	// ctx.fillRect(0,0,w, h*player.vangle+h/2);
-	ctx.fillStyle = brown;
+	var gradient = ctx.createLinearGradient(0,h - h*player.vangle+h/2,0,h*player.vangle+h/2);
+	gradient.addColorStop(0, brown);
+	gradient.addColorStop(1, 'rgb(16,16,16');
+	ctx.fillStyle = gradient;
 	ctx.fillRect(0, h*player.vangle+h/2,w,h - h*player.vangle+h/2);
 	ctx.closePath();
 	
@@ -370,15 +406,16 @@ function minimap(){
 	ctx.moveTo(player.x * coef,player.y * coef);
 	ctx.lineTo((player.x + line * Math.cos(player.angle)) * coef,(player.y + line * Math.sin(player.angle)) * coef);
 	ctx.stroke()
-	map.forEach((row,i) => {
+	text_map.forEach((row,i) => {
+		Array.from(row).forEach((column,j) =>{
 
-		let a = row.split(',');
-		ctx.fillStyle = blue;
-		ctx.fillRect(a[0]* coef,a[1]* coef,tile* coef,tile* coef);
-		
+			if(column != '.'){
+
+				ctx.fillStyle = blue;
+				ctx.fillRect(j * tile * coef,i * tile * coef,tile* coef,tile* coef);
+			}
+		})	
 	});
-	
-	
 }
 setInterval(function gameLoop(){
 	player.movement();
@@ -414,7 +451,7 @@ document.addEventListener("keydown", (e) => {
 
 		})
 document.addEventListener("keyup", (e) => {
-	if (e.keyCode=== 87) {
+	if (e.keyCode === 87) {
 		keys[0] = false;
 	}
 	if (e.keyCode === 65) {
@@ -426,12 +463,12 @@ document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 68) {
 		keys[3] = false;
 	}
-// 	if (e.keyCode === 37) {
-// 		keys[4] = false;
-// 	}
-// 	if (e.keyCode === 39) {
-// 		keys[5] = false;
-// 	}
+	// if (e.keyCode === 37) {
+	// 	keys[4] = false;
+	// }
+	// if (e.keyCode === 39) {
+	// 	keys[5] = false;
+	// }
  });
 
 document.addEventListener("mousemove", function (event) {

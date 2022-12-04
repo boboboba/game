@@ -11,7 +11,7 @@ let		canvas = document.createElement('canvas'),
 // game set
 const	tile 		= 100,
 		fov 		= Math.PI/3,
-		num_rays	= 480,
+		num_rays	= 120,
 		max_dist	= 2000,
 		d_angle		= fov/num_rays,
 		surface_dist= num_rays / (2*Math.tan(fov/2)),
@@ -59,12 +59,12 @@ let		player_set 	= {
 			angle	: 0,
 			speed	: 3
 		},
-		scale		= (w/num_rays)+2;
+		scale		= Math.ceil(w/num_rays);
 		
 window.onresize = function(){
 w		= canvas.width = innerWidth,
 h		= canvas.height = innerHeight;   
-scale	= (w/num_rays)+2;     
+scale	= Math.ceil(w/num_rays);     
 };
 
 
@@ -151,8 +151,9 @@ function rayCast(Px,Py,angle){
 				dist *= Math.cos(player_set.angle - cur_angle);
 				ctx.beginPath();
 				let c = 255/(1+dist*dist*0.0001)+16;
-				ctx.fillStyle = 'rgb('+c+','+(c+64)+','+c+')';
-				ctx.fillRect(i*w/num_rays, h/2 - 80000/dist/2, scale,80000/dist);
+				//ctx.fillStyle = 'rgb('+c+','+c+','+c+')';
+				ctx.fillStyle = 'rgb(128,128,128';
+				ctx.fillRect(i*scale, h/2 - scale*surface_dist*tile/dist/2, scale,scale*surface_dist*tile/dist);
 				ctx.closePath();
 				ctx.fill();
 
